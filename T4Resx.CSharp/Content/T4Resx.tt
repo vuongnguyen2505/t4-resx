@@ -1,0 +1,37 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Xml" #>
+<#@ assembly name="System.Xml.Linq" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text.RegularExpressions" #>
+<#@ import namespace="System.Xml.Linq" #>
+<#@ import namespace="System.Runtime.Remoting.Messaging" #>
+<#@ include file="T4Resx.tt.settings.t4" #>
+<#@ output extension=".cs" #><#
+XElement projectXml = ReadProject(Host.TemplateFile);
+IEnumerable<string> resourcePaths = GetResourcePaths(projectXml);
+IDictionary<string,string> resourceNames = GetResourceNames(resourcePaths);
+
+#>namespace <#= GetNamespace() #>
+{
+	///<summary>
+	/// Provides access to resource key names for every resource file in the current project.
+	///</summary>
+	public static class <#= GeneratedName #>
+	{
+<# foreach(var resourceName in resourceNames){ #>
+		///<summary>
+		/// Provides access to resource key names for the <#= resourceName.Value #> resource file.
+		///</summary>
+		public static class <#= resourceName.Key #>
+		{
+<# foreach(var resourceKey in ReadResourceKeys(Host.ResolvePath(resourceName.Value))){ #>
+			public const string <#= resourceKey #> = "<#= resourceKey #>";
+<# } #>
+		}
+
+<# } #>
+	}
+}

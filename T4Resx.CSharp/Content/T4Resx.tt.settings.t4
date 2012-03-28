@@ -1,0 +1,90 @@
+﻿<#+
+/*
+ * change the following values to match your individual needs.
+ */
+
+public static readonly string NamespaceOverride = null; // leave NULL if you want the namespace to match the file location.
+public static readonly string GeneratedName = "ResourceKeys"; // the name of the wrapper class
+
+/*
+ * the below code shouldn't need to be modified very often (I hope).
+ */
+
+
+public static readonly XNamespace ProjectNamespace = "http://schemas.microsoft.com/developer/msbuild/2003";
+
+public static XName CsprojName(string name)
+{
+	return ProjectNamespace + name;
+}
+
+public static IEnumerable<string> ReadResourceKeys(string resourcePath)
+{
+	return XElement.Load(resourcePath).Descendants("data").Select(x => x.Attribute("name").Value);
+}
+
+public static XElement ReadProject(string templatePath)
+{
+	var templateDir = new DirectoryInfo(Path.GetDirectoryName(templatePath));
+	string searchPattern = "*.csproj";
+	FileInfo[] matches = templateDir.GetFiles(searchPattern);
+	while(matches.Length == 0)
+	{
+		templateDir = templateDir.Parent;
+		if(templateDir == null) break;
+		matches = templateDir.GetFiles(searchPattern);
+	}
+	var match = matches.FirstOrDefault();
+
+	return match == null ? null : XElement.Load(match.FullName);
+}
+
+public static string GetNamespace()
+{
+	return !string.IsNullOrEmpty(NamespaceOverride) 
+		? NamespaceOverride 
+		: CallContext.LogicalGetData("NamespaceHint") as string;
+}
+
+public static IEnumerable<string> GetResourcePaths(XElement projectFile)
+{
+	return projectFile
+		.Descendants(CsprojName("ItemGroup"))
+		.Descendants(CsprojName("EmbeddedResource"))
+		.Select(x => x.Attribute("Include").Value);
+}
+
+private static IDictionary<string, string> GetResourceNames(IEnumerable<string> paths)
+{
+	var results = new Dictionary<string, string>();
+
+	string resourcePathKey = "name";
+	var resourcePathPattern = new Regex(string.Format(@"(?i)(?<{0}>[^\\\.]+)\.resx$", resourcePathKey));
+	
+	var analysis = paths.Select(x => new
+	{
+		Path = x,
+		Name = resourcePathPattern.Match(x).Groups[resourcePathKey].Value
+	}).GroupBy(x => x.Name);
+	
+	foreach(var analysisGroup in analysis)
+	{
+		bool fullName = analysisGroup.Count() > 1;
+		foreach(var item in analysisGroup)
+		{
+			string key = fullName ? GetFriendlyName(item.Path) : item.Name;
+			results[key] = item.Path;
+		}
+	}
+	
+	return results;
+}
+
+private static string GetFriendlyName(string path)
+{
+	var noExtension = new Regex(@"\.[^\.]+$");
+	var strippedPath = noExtension.Replace(path, string.Empty);
+	var unfriendlyPattern = new Regex("(?i)[^a-z0-9]+");
+	return unfriendlyPattern.Replace(strippedPath, "_");
+}
+#>
