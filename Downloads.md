@@ -1,0 +1,1 @@
+To install `T4Resx.CSharp`, run the following command in the [Package Manager Console](http://docs.nuget.org/docs/start-here/using-the-package-manager-console)<wiki:gadget url="http://cdn.battecode.com/images/projects/nugetPackageLink.xml" up\_projectName="T4Resx.CSharp" width="100%" height="65" border="0" />
